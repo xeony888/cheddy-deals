@@ -1,9 +1,11 @@
 Milestone 02
 ===
-
+Site Link
+--- 
+https://cheddy-deals.onrender.com
 Repository Link
 ---
-https://github.com/<your-org-or-user>/cheddy-auth-nextjs
+https://github.com/xeony888/cheddy-deals
 
 Special Instructions for Using Form (or Login details if auth is part of your project)
 ---
