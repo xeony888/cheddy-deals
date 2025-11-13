@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import clsx from "clsx";
 import { CampaignAndDeliverables } from "@/lib/types";
 
@@ -14,14 +14,21 @@ export default function HomeComponent(props: {
 }) {
     const { username, page, totalPages, filter, cards } = props;
     const router = useRouter();
-    const sp = useSearchParams();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
 
     function push(params: Record<string, string>) {
         const url = new URL(window.location.href);
         Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
         router.replace(url.pathname + "?" + url.searchParams.toString());
     }
+    function setFilter(nextFilter: "active" | "all" | "completed") {
+        const params = new URLSearchParams(searchParams.toString());
+        params.set("filter", nextFilter);
+        params.set("page", "1"); // reset to first page on filter change
 
+        router.replace(`${pathname}?${params.toString()}`);
+    }
     async function logout() {
         await fetch("/api/auth/logout", { method: "POST" });
         router.replace("/login");
@@ -50,16 +57,15 @@ export default function HomeComponent(props: {
                 </div>
             </header>
 
-            {/* Filters */}
             <section className="px-6 pt-6">
                 <div className="text-sm font-mono mb-3">FILTERS:</div>
                 <div className="flex items-center gap-2">
                     {(["active", "all", "completed"] as const).map((f) => (
                         <button
                             key={f}
-                            onClick={() => push({ filter: f, page: "1" })}
+                            onClick={() => setFilter(f)}
                             className={clsx(
-                                "text-xs px-3 py-1 rounded border",
+                                "text-xs px-3 py-1 rounded border hover:bg-black hover:text-white hover:cursor-pointer",
                                 f === filter ? "bg-black text-white" : "bg-white"
                             )}
                         >
@@ -69,7 +75,6 @@ export default function HomeComponent(props: {
                 </div>
             </section>
 
-            {/* Grid */}
             <section className="grid md:grid-cols-2 gap-6 px-6 py-6">
                 {cards.map((c) => {
                     const done = c.deliverables.length;

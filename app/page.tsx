@@ -1,23 +1,19 @@
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import HomeComponent from "@/components/HomeComponent";
-import { Campaign } from "@prisma/client";
-
-export const dynamic = "force-dynamic"; // reads request headers
-
-
 
 export default async function HomePage({
   searchParams,
 }: {
-  searchParams: { filter?: "active" | "completed" | "all"; page?: string };
+  searchParams: Promise<{ filter?: "active" | "completed" | "all"; page?: string }>;
 }) {
   const h = await headers();
+  const sp = await searchParams;
   const username = h.get("x-user-username") ?? "unknown";
-
+  console.log({ searchParams });
   const pageSize = 2; // 2 cards per page (like screenshot)
-  const page = Math.max(1, Number(searchParams?.page ?? 1));
-  const filter = (searchParams?.filter ?? "active") as "active" | "completed" | "all";
+  const page = Math.max(1, Number(sp?.page ?? 1));
+  const filter = (sp?.filter ?? "active") as "active" | "completed" | "all";
 
   // Get all campaign ids + counts to compute filters/pagination server-side
   const allCampaigns = await prisma.campaign.findMany({
