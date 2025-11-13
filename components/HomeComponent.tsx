@@ -1,38 +1,166 @@
-"use client"
-import clsx from "clsx";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+"use client";
 
-export default function HomeComponent({ username }: { username: string }) {
-    const r = useRouter();
-    const [loading, setLoading] = useState(false);
-    async function onSubmit() {
-        setLoading(true);
-        const res = await fetch("/api/auth/logout", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-        });
-        if (res.ok) {
-            r.replace("/login");
-        } else {
-            const data = await res.json().catch(() => ({}));
-            console.error(data)
-        }
-        setLoading(false);
+import { useRouter, useSearchParams } from "next/navigation";
+import clsx from "clsx";
+import { CampaignAndDeliverables } from "@/lib/types";
+
+
+export default function HomeComponent(props: {
+    username: string;
+    page: number;
+    totalPages: number;
+    filter: "active" | "completed" | "all";
+    cards: CampaignAndDeliverables[];
+}) {
+    const { username, page, totalPages, filter, cards } = props;
+    const router = useRouter();
+    const sp = useSearchParams();
+
+    function push(params: Record<string, string>) {
+        const url = new URL(window.location.href);
+        Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+        router.replace(url.pathname + "?" + url.searchParams.toString());
     }
+
+    async function logout() {
+        await fetch("/api/auth/logout", { method: "POST" });
+        router.replace("/login");
+    }
+
     return (
-        <main className="min-h-screen grid place-items-center p-10">
-            <h1 className="text-3xl font-bold">Welcome, {username}</h1>
-            <button
-                onClick={onSubmit}
-                className={
-                    clsx(
-                        "w-full h-11 bg-black text-white rounded hover:opacity-90",
-                        loading && "opacity-60 cursor-not-allowed"
-                    )}
-            >
-                {loading ? "Logging Out..." : "Log Out"}
-            </button>
+        <main className="min-h-screen">
+            {/* Top bar */}
+            <header className="flex items-center justify-between px-5 py-3 border-b">
+                <div className="flex items-center gap-3">
+                    <div className="font-extrabold italic text-2xl select-none">
+                        <span className="border-b-8 border-black pb-1">CHEDDY</span>
+                    </div>
+                    <span className="ml-2 text-xs px-2 py-1 border rounded bg-white">ADMIN</span>
+                </div>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => router.push("/admin")}
+                        className="text-xs border px-3 py-2 rounded"
+                    >
+                        ADMIN PANEL
+                    </button>
+                    <button onClick={logout} className="text-xs border px-3 py-2 rounded">
+                        LOGOUT
+                    </button>
+                </div>
+            </header>
+
+            {/* Filters */}
+            <section className="px-6 pt-6">
+                <div className="text-sm font-mono mb-3">FILTERS:</div>
+                <div className="flex items-center gap-2">
+                    {(["active", "all", "completed"] as const).map((f) => (
+                        <button
+                            key={f}
+                            onClick={() => push({ filter: f, page: "1" })}
+                            className={clsx(
+                                "text-xs px-3 py-1 rounded border",
+                                f === filter ? "bg-black text-white" : "bg-white"
+                            )}
+                        >
+                            {f.toUpperCase()}
+                        </button>
+                    ))}
+                </div>
+            </section>
+
+            {/* Grid */}
+            <section className="grid md:grid-cols-2 gap-6 px-6 py-6">
+                {cards.map((c) => {
+                    const done = c.deliverables.length;
+                    const target = Math.max(1, c.deliverableTarget);
+                    const pct = Math.min(100, Math.round((done / target) * 100));
+                    const completed = done >= target;
+
+                    return (
+                        <article
+                            key={c.id}
+                            className="rounded border bg-[#F6F8FA] p-5 shadow-sm"
+                        >
+                            <div className="flex items-start justify-between">
+                                <h3 className="font-mono font-bold tracking-widest">{c.name}</h3>
+                                <div className="text-xs text-gray-500">
+                                    Started: {c.startDate.toString()}
+                                </div>
+                            </div>
+
+                            <div className="mt-2">
+                                <span
+                                    className={clsx(
+                                        "text-xs px-2 py-1 rounded font-mono",
+                                        completed ? "bg-gray-900 text-white" : "bg-green-500 text-white"
+                                    )}
+                                >
+                                    {completed ? "COMPLETED" : "ACTIVE"}
+                                </span>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-8 mt-6">
+                                <div>
+                                    <div className="text-xs font-mono text-gray-500">VIEWS</div>
+                                    <div className="text-2xl font-bold">0</div>
+                                </div>
+                                <div>
+                                    <div className="text-xs font-mono text-gray-500">ENGAGEMENTS</div>
+                                    <div className="text-2xl font-bold">0</div>
+                                </div>
+                            </div>
+
+                            <div className="mt-6">
+                                <div className="flex items-center justify-between text-xs font-mono text-gray-500">
+                                    <span>DELIVERABLES</span>
+                                    <span>
+                                        {done}/{target}
+                                    </span>
+                                </div>
+                                <div className="mt-2 h-5 bg-gray-200 rounded overflow-hidden">
+                                    <div
+                                        className="h-5 bg-black"
+                                        style={{ width: `${pct}%` }}
+                                    />
+                                </div>
+                                <div className="text-center text-xs mt-1 font-mono text-gray-600">
+                                    {pct}%
+                                </div>
+                            </div>
+                        </article>
+                    );
+                })}
+            </section>
+
+            {/* Pagination + Add */}
+            <section className="flex items-center justify-between px-6 pb-10">
+                <div className="flex items-center gap-2 text-sm">
+                    <button
+                        onClick={() => push({ filter, page: String(Math.max(1, page - 1)) })}
+                        className="border px-3 py-2 rounded text-xs"
+                        disabled={page <= 1}
+                    >
+                        ← PREVIOUS
+                    </button>
+                    <span className="text-xs">Page {page} of {totalPages}</span>
+                    <button
+                        onClick={() => push({ filter, page: String(Math.min(totalPages, page + 1)) })}
+                        className="border px-3 py-2 rounded text-xs"
+                        disabled={page >= totalPages}
+                    >
+                        NEXT →
+                    </button>
+                </div>
+
+                <button
+                    onClick={() => router.push("/campaigns/new")}
+                    className="flex items-center gap-2 border px-4 py-3 rounded text-xs bg-black text-white"
+                >
+                    <span className="text-lg leading-none">＋</span>
+                    ADD CAMPAIGN
+                </button>
+            </section>
         </main>
     );
 }
