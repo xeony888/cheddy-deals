@@ -86,6 +86,9 @@ export default function HomeComponent(props: {
                         <article
                             key={c.id}
                             className="rounded border bg-[#F6F8FA] p-5 shadow-sm"
+                            onClick={() => {
+                                router.push(`/campaigns/${c.id}`)
+                            }}
                         >
                             <div className="flex items-start justify-between">
                                 <h3 className="font-mono font-bold tracking-widest">{c.name}</h3>
