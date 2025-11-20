@@ -72,7 +72,7 @@ export default function SettingsTab({ campaign }: any) {
                     onClick={save}
                     className="px-4 py-2 bg-black text-white text-xs rounded"
                 >
-                    SAVE CHANGESj
+                    SAVE CHANGES
                 </button>
 
                 <button
